@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "cubesat-simradio"
+version = "0.1.0"
+description = ""
+authors = ["CrinitusFeles <crinitusfeles@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pydantic = "^2.4.2"
+skyfield = "^1.46"
+pytz = "^2023.3.post1"
+loguru = "^0.7.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "PL"]
+ignore = ["PLR2004", "PLR0913"]
