@@ -45,7 +45,7 @@ class RadioMock:
 
         self.interface: InterfaceMock = InterfaceMock()
 
-        self.__rx_thread = threading.Thread(name='rx_thread', target=self.rx_routine, daemon=True)
+        self.__rx_thread = threading.Thread(name='rx_thread', target=self._rx_routine, daemon=True)
         self.__stop_rx_routine_flag: bool = False
         self.__rx_timeout_sec: int = 3
         self.__rx_buffer: list[LoRaRxPacket] = []
@@ -56,11 +56,13 @@ class RadioMock:
         self.sat_path: SatellitePath | None = None
 
         self.rx_queue: Queue[bytes] = Queue(1)
-        self.satellite = EMUSAT()
+        self.__last_model: RadioModel = self.__to_model()
+
+        self.satellite = EMUSAT(**kwargs)
         self.satellite.transmited.connect(lambda data: self.rx_queue.put(data, timeout=0.5))
         self.connect()
 
-    def to_model(self) -> RadioModel:
+    def __to_model(self) -> RadioModel:
         return RadioModel(mode=self.modulation.name, frequency=self.frequency, spreading_factor=self.spread_factor,
                           bandwidth=self.bandwidth.name, check_crc=self.crc_mode, sync_word=self.sync_word,
                           coding_rate=self.coding_rate.name, tx_power=self.tx_power, lna_boost=self.lna_boost,
@@ -69,7 +71,7 @@ class RadioMock:
                           op_mode='RXCONT')
 
     def read_config(self) -> RadioModel:
-        return self.to_model()
+        return self.__last_model
 
     def clear_subscribers(self) -> None:
         self.received.listeners[:] = self.received.listeners[:2]
@@ -79,12 +81,13 @@ class RadioMock:
 
     def init(self) -> None:
         time.sleep(1)
+        self.__last_model = self.__to_model()
 
     def start_rx_thread(self) -> None:
         if not self.__rx_thread.is_alive():
             logger.debug('Start Rx thread')
             self.__stop_rx_routine_flag = False
-            self.__rx_thread = threading.Thread(name='radio_rx_thread', target=self.rx_routine, daemon=True)
+            self.__rx_thread = threading.Thread(name='radio_rx_thread', target=self._rx_routine, daemon=True)
             self.__rx_thread.start()
 
     def stop_rx_thread(self) -> None:
@@ -157,11 +160,11 @@ class RadioMock:
                 tx_chunk: LoRaTxPacket = self.calculate_packet(chunk)
                 logger.debug(tx_chunk)
                 time.sleep((tx_chunk.Tpkt + 10) / 1000)
-                self.satellite.receive_data(chunk, self.to_model())
+                self.satellite.receive_data(chunk, self.__to_model())
 
         else:
             time.sleep((tx_pkt.Tpkt) / 1000)
-            self.satellite.receive_data(data, self.to_model())
+            self.satellite.receive_data(data, self.__to_model())
 
         with self.__lock:
             self.transmited.emit(tx_pkt)
@@ -228,10 +231,10 @@ class RadioMock:
         try:
             data: bytes = self.rx_queue.get(timeout=0.5)
 
-            diff_items: dict = {k: self.read_config().dict()[k] for k in self.read_config().dict()
-                                if k in self.satellite.radio_config.dict()
-                                and not self.__compare_models(self.satellite.radio_config.dict()[k],
-                                                              self.read_config().dict()[k])}
+            diff_items: dict = {k: self.read_config().model_dump()[k] for k in self.read_config().model_dump()
+                                if k in self.satellite.radio_config.model_dump()
+                                and not self.__compare_models(self.satellite.radio_config.model_dump()[k],
+                                                              self.read_config().model_dump()[k])}
             if len(diff_items) != 0:
                 print(f'gs got data from sat but radio config is incorrect. Different attributes: {diff_items}')
                 return None
@@ -250,15 +253,9 @@ class RadioMock:
         return LoRaRxPacket(timestamp, ' '.join(f'{val:02X}' for val in data), len(data), freq_error,
                             *self.get_snr_and_rssi(), crc)
 
-    def clear_rx_buffer(self) -> None:
-        self.__rx_buffer.clear()
-
-    def clear_tx_buffer(self) -> None:
-        self.__tx_buffer.clear()
-
     def clear_buffers(self) -> None:
-        self.clear_rx_buffer()
-        self.clear_tx_buffer()
+        self.__rx_buffer.clear()
+        self.__tx_buffer.clear()
 
     def clear(self) -> None:
         self.clear_buffers()
@@ -271,7 +268,7 @@ class RadioMock:
     def get_rx_buffer(self) -> list[LoRaRxPacket]:
         return self.__rx_buffer
 
-    def rx_routine(self) -> None:
+    def _rx_routine(self) -> None:
         while not self.__stop_rx_routine_flag:
             pkt: LoRaRxPacket | None = self.check_rx_input()
             if pkt is not None:
@@ -300,5 +297,5 @@ class RadioMock:
 
 
 if __name__ == '__main__':
-    radio = RadioMock()
+    radio = RadioMock(name='NORBI2')
     radio.user_cli()

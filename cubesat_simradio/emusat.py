@@ -39,14 +39,14 @@ class EMUSAT:
 
     def update_config(self, sat_name: str):
         self.name = sat_name
-        if self.name == 'NORBI':
+        if self.name.upper() == 'NORBI':
             self.radio_config: RadioConfig = NORBI_CONFIG
             self.addresses: tuple = (bytes([10, 6, 1, 201]), bytes([10, 6, 1, 202]))
-        elif sat_name in ['NORBI2', 'NORBI-2', 'NORBY2', 'NORBY-2']:
+        elif self.name.upper() in ['NORBI2', 'NORBI-2', 'NORBY2', 'NORBY-2']:
             self.name = 'NORBI-2'
             self.radio_config = NORBI2_CONFIG
             self.addresses: tuple = (bytes([10, 6, 1, 203]), bytes([10, 6, 1, 204]))
-        elif self.name == 'STRATOSAT-TK 1 (RS52S)':
+        elif self.name.upper() == 'STRATOSAT-TK 1 (RS52S)':
             self.radio_config = STRATOSAT_CONFIG
         else:
             self.radio_config = DEFAULT_CONFIG
