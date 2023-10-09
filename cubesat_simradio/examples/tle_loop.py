@@ -1,9 +1,9 @@
 
 import time
-from cubesat_simradio.examples.frame_parser import frame_parser
+import cubesat_simradio.examples.frame_parser as module
+import cubesat_simradio.examples.register_commands as brk_commands
 from cubesat_simradio.models import SX127x_HeaderMode
 from cubesat_simradio.radio_mock import RadioMock
-import cubesat_simradio.examples.register_commands as brk_commands
 
 radio = RadioMock(rx_loss_level=55, tx_loss_level=5, interference_level=5)
 
@@ -33,7 +33,7 @@ print(radio.read_config())
 def receive_handler(packet):
     try:
         if not packet.is_crc_error:
-            radio_packet, dataframe = frame_parser(packet.to_bytes(), sat_name)
+            radio_packet, dataframe = module.frame_parser(packet.to_bytes(), sat_name)
             global transaction_id
             transaction_id += 1
             print(dataframe.to_string())
