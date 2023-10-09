@@ -27,7 +27,12 @@ def struct_time(data: bytes) -> str:
     return datetime.datetime(2000 + data[0], *data[1:]).isoformat(' ', 'seconds')  # type: ignore
 
 
-def field_format(field_name: str, field_type: str, field_size: int, value: bytes):
+# def field_format(field_name: str, field_type: str, field_size: int, value: bytes):
+def field_format(data: pd.Series) -> str | int:
+    field_name = data.iloc(0)
+    field_type = data['Размерность']
+    field_size = data['Размер Байт']
+    value = data['Значения']
     if value is np.nan:
         return value
     if field_type is np.nan:
@@ -91,10 +96,8 @@ def frame_parser(data: bytes, sat_name: str = 'NORBI'):
     tmi_frame: pd.DataFrame = tmi.rename(columns={'Параметр': new_header_name})
     msg_data: list[bytes] = split_data_by_sizes(radio_frame.msg, tmi['Размер Байт'].astype('int').tolist())
     tmi_frame['Значения'] = pd.Series(msg_data)  # add column
-    for index, row in tmi_frame.iterrows():
-        tmi_frame.at[index, 'Значения'] = field_format(row[0], row['Тип данных'], row['Размер Байт'], row['Значения'])
-    tmi_frame.at[len(tmi_frame) - 1, 'Значения'] = f"0x{''.join(f'{val:02X}' for val in radio_frame.crc16)}"
-    return radio_frame, tmi_frame#[[new_header_name, 'Размерность', 'Значения']]
+    tmi_frame['Значения'] = tmi_frame.apply(field_format, axis=1)
+    return radio_frame, tmi_frame  #[[new_header_name, 'Размерность', 'Значения']]
 
 
 def split_data_by_sizes(msg: bytes, field_sizes: list[int]) -> list[bytes]:

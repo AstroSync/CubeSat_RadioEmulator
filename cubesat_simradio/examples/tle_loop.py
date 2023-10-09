@@ -60,14 +60,19 @@ tmi_offsets = [146, 326, 506, 686]
 while board_time == 0:
     delay(1)
 
-while True:
-    if sat_name == 'NORBI':
-        for tmi_num in range(1, 10, 2):
-            radio.send_repeat([14, *norbi_address_list, *station_address_list, 0, transaction_id, 0, 0, 0, tmi_num], period_sec=3, max_retries=10)
-    elif sat_name == 'NORBI-2':
-        for tmi_offset in tmi_offsets:
-            radio.send_repeat(brk_commands.read_register(station_address, norbi2_address, transaction_id, [(3, 5, tmi_offset, 128)]), period_sec=3, max_retries=10)
-            transaction_id += 1
-    else:
-        print(f'incorrect sat: {sat_name}')
-        delay(60)
+try:
+    while True:
+        if sat_name == 'NORBI':
+            for tmi_num in range(1, 10, 2):
+                radio.send_repeat([14, *norbi_address_list, *station_address_list, 0, transaction_id, 0, 0, 0, tmi_num],
+                                  period_sec=3, max_retries=10)
+        elif sat_name == 'NORBI-2':
+            for tmi_offset in tmi_offsets:
+                radio.send_repeat(brk_commands.read_register(station_address, norbi2_address, transaction_id,
+                                                             [(3, 5, tmi_offset, 128)]), period_sec=3, max_retries=10)
+                transaction_id += 1
+        else:
+            print(f'incorrect sat: {sat_name}')
+            delay(60)
+except KeyboardInterrupt:
+    print('shutting down...')
