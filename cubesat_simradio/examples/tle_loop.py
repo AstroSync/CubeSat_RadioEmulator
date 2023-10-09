@@ -5,7 +5,7 @@ from cubesat_simradio.models import SX127x_HeaderMode
 from cubesat_simradio.radio_mock import RadioMock
 import cubesat_simradio.examples.register_commands as brk_commands
 
-radio = RadioMock()
+radio = RadioMock(rx_loss_level=55, tx_loss_level=5, interference_level=5)
 
 
 def get_sat_name():

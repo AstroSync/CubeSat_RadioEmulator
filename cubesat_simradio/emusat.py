@@ -23,7 +23,7 @@ class EMUSAT:
 
     session: SessionModel
     path: SatellitePath
-    def __init__(self, name: str = 'NORBI') -> None:
+    def __init__(self, name: str = 'NORBI', **kwargs) -> None:
         self.name: str = name
         self.update_config(name)
         self.transaction_id: int = random.randint(0, 0xFFFF)
@@ -34,6 +34,9 @@ class EMUSAT:
 
         self._next_beacon_timestamp: float = 0
         self._rx_queue: Queue[bytes] = Queue(1)
+
+        self.tx_loss_level: int = kwargs.get('tx_loss_level', 0)  # 0 to 100
+        self.rx_loss_level: int = kwargs.get('rx_loss_level', 0)  # 0 to 100
         # self.start_t_index = 0
         # self.finish_t_index = -1
 
@@ -128,14 +131,14 @@ class EMUSAT:
         return val1 == val2
 
     def receive_data(self, data: bytes | list[int], radio_parameters: RadioModel | None = None) -> None:
-        if random.randint(0, 10) < 2:
+        if 0 < random.random() < 1 - self.rx_loss_level / 100:
             if not radio_parameters:
                 self._rx_queue.put(bytes(data) + b'\xff\xff', timeout=0.5)
             if radio_parameters:
-                diff_items: dict = {k: radio_parameters.dict()[k] for k in radio_parameters.dict()
-                                    if k in self.radio_config.dict()
-                                    and not self.__compare_models(self.radio_config.dict()[k],
-                                                                  radio_parameters.dict()[k])}
+                diff_items: dict = {k: radio_parameters.model_dump()[k] for k in radio_parameters.model_dump()
+                                    if k in self.radio_config.model_dump()
+                                    and not self.__compare_models(self.radio_config.model_dump()[k],
+                                                                  radio_parameters.model_dump()[k])}
                 if len(diff_items) == 0:
                     self._rx_queue.put(bytes(data) + b'\xff\xff', timeout=0.5)
                 else:
@@ -183,7 +186,7 @@ class EMUSAT:
         # if not hasattr(self, 'path'):
         #     return None
         # if self.path.t_points[self.start_t_index] < datetime.now(utc) < self.path.t_points[self.finish_t_index]:
-        if random.randint(0, 9) > 1:
+        if 0 < random.random() < 1 - self.tx_loss_level / 100:
             time.sleep(0.5)
             self.transmited.emit(data)
 

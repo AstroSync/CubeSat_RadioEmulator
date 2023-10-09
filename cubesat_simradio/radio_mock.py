@@ -26,7 +26,7 @@ class RadioMock:
     tx_timeout: Signal = Signal(str)
     on_rx_timeout: Signal = Signal(str)
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, interference_level: int = 0, **kwargs) -> None:
         self.modulation: SX127x_Modulation = kwargs.get('modulation', SX127x_Modulation.LORA)
         self.coding_rate: SX127x_CR = kwargs.get('ecr', SX127x_CR.CR5)  # error coding rate
         self.bandwidth: SX127x_BW = kwargs.get('bw', SX127x_BW.BW250)  # bandwidth  BW250
@@ -52,6 +52,8 @@ class RadioMock:
         self.__tx_buffer: list[LoRaTxPacket] = []
         self.__lock = threading.Lock()
         self.__waiting_answer: bool = False
+
+        self.interference_level: int = interference_level
 
         self.sat_path: SatellitePath | None = None
 
@@ -230,28 +232,21 @@ class RadioMock:
     def check_rx_input(self) -> LoRaRxPacket | None:
         try:
             data: bytes = self.rx_queue.get(timeout=0.5)
-
-            diff_items: dict = {k: self.read_config().model_dump()[k] for k in self.read_config().model_dump()
-                                if k in self.satellite.radio_config.model_dump()
-                                and not self.__compare_models(self.satellite.radio_config.model_dump()[k],
-                                                              self.read_config().model_dump()[k])}
-            if len(diff_items) != 0:
-                print(f'gs got data from sat but radio config is incorrect. Different attributes: {diff_items}')
-                return None
-
-            if self.crc_mode:
-                dice: int = random.randint(0, 9)
-            else:
-                dice = 9
-            crc: bool = dice < 3
         except Empty:
             return None
-        if not data:
+        diff_items: dict = {k: self.read_config().model_dump()[k] for k in self.read_config().model_dump()
+                            if k in self.satellite.radio_config.model_dump()
+                            and not self.__compare_models(self.satellite.radio_config.model_dump()[k],
+                                                            self.read_config().model_dump()[k])}
+        if len(diff_items) != 0:
+            print(f'gs got data from sat but radio config is incorrect. Different attributes: {diff_items}')
             return None
+        dice: float = random.random()
+        crc_error: bool = 0 < dice < self.interference_level / 100 if self.crc_mode else True
         freq_error: int = self.calculate_freq_error()
         timestamp: str = datetime.now().astimezone(utc).isoformat(' ', 'seconds')
         return LoRaRxPacket(timestamp, ' '.join(f'{val:02X}' for val in data), len(data), freq_error,
-                            *self.get_snr_and_rssi(), crc)
+                            *self.get_snr_and_rssi(), crc_error)
 
     def clear_buffers(self) -> None:
         self.__rx_buffer.clear()
