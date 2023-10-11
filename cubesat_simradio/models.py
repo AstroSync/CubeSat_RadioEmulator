@@ -33,7 +33,7 @@ class LoRaTxPacket(LoRaPacket):
     low_datarate_opt_flag: bool
 
     def __str__(self) -> str:
-        return f"{self.timestamp} tx > {self.data}"
+        return f"{self.timestamp} tx > {self.data} (Tpkt: {self.Tpkt})"
 
 class SessionModel(BaseModel):
     time_range_id: UUID = Field(alias='_id')

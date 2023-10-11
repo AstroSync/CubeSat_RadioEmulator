@@ -17,7 +17,7 @@ class RadioPacket:
         self.transaction_num: int = int.from_bytes(fields[3], 'big')
         self.__res: bytes = fields[4]
         self.msg_id: int = int.from_bytes(fields[5], 'big')
-        self.msg: bytes = raw_data[sum(self.sizes[:-2]):]
+        self.msg: bytes = raw_data[sum(self.sizes[:-2]):-2]
         self.crc16: bytes = raw_data[-self.sizes[-1]:]
 
     def split_by_sizes(self, buffer: bytes) -> list[bytes]:

@@ -279,16 +279,22 @@ class RadioMock:
     def user_cli(self) -> None:
         try:
             while True:
-                data = literal_eval(input('> '))
-                if isinstance(data, tuple):
-                    data = list(data)
-                if isinstance(data, (list, bytes)):
-                    self.send_single(data)
-                else:
-                    logger.warning('Incorrect data format. You can send list[int] or bytes.')
+                try:
+                    data = literal_eval(input('> '))
+                    if isinstance(data, tuple):
+                        data = list(data)
+                    if isinstance(data, (list, bytes)):
+                        self.send_single(data)
+                    else:
+                        logger.warning('Incorrect data format. You can send list[int] or bytes.')
+                except SyntaxError as err:
+                    logger.error(err)
         except KeyboardInterrupt:
             self.disconnect()
             logger.debug('Shutdown radio driver')
+
+
+
 
 
 if __name__ == '__main__':

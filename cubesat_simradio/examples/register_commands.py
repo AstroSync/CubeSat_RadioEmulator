@@ -88,7 +88,8 @@ def read_register(tx_address: bytes | int, rx_address: bytes | int, transaction_
                   data: list[tuple[int, int, int, int]]) -> bytes:
     """data:  [(dev_id: int, var_id: int, offset: int, length: int), (dev_id, var_id, offset, length), ...] """
     msg: bytes = read_registers_message([(BRK_VAR_ID(*args[:3]), args[3]) for args in data])
-    radio_frame: bytes = generate_radio_frame(tx_address, rx_address, transaction_id=transaction_id, msg_id=13, data=msg)
+    radio_frame: bytes = generate_radio_frame(tx_address, rx_address, transaction_id=transaction_id, msg_id=13,
+                                              data=msg)
     return radio_frame
 
 
@@ -96,6 +97,7 @@ def write_register(tx_address: bytes | int, rx_address: bytes | int, transaction
                    data: list[tuple[int, int, int, int | bytes]], btime: int):
     """data:  [(dev_id: int, var_id: int, offset: int, data: int | bytes), (dev_id, var_id, offset, data), ...] """
     msg: bytes = write_registers_message([(BRK_VAR_ID(*args[:3]), args[3]) for args in data], btime)
-    radio_frame: bytes = generate_radio_frame(tx_address, rx_address, transaction_id=transaction_id, msg_id=15, data=msg)
+    radio_frame: bytes = generate_radio_frame(tx_address, rx_address, transaction_id=transaction_id, msg_id=15,
+                                              data=msg)
     return radio_frame
 

@@ -39,6 +39,10 @@ class EMUSAT:
         self.rx_loss_level: int = kwargs.get('rx_loss_level', 0)  # 0 to 100
         # self.start_t_index = 0
         # self.finish_t_index = -1
+        self.routes = {}
+
+    def add_route(self, request_data: bytes, response_data: bytes):
+        self.routes.update({request_data: response_data})
 
     def update_config(self, sat_name: str):
         self.name = sat_name
@@ -140,7 +144,8 @@ class EMUSAT:
                                     and not self.__compare_models(self.radio_config.model_dump()[k],
                                                                   radio_parameters.model_dump()[k])}
                 if len(diff_items) == 0:
-                    self._rx_queue.put(bytes(data) + b'\xff\xff', timeout=0.5)
+                    hardware_crc = b'\xff\xff'
+                    self._rx_queue.put(bytes(data) + hardware_crc, timeout=0.5)
                 else:
                     logger.warning(f'different attributes: {diff_items}')
             return None
@@ -167,6 +172,9 @@ class EMUSAT:
                 self.send_data(self.generate_answer_pss_tmi(2))
             elif radio_packet.msg[:-2] == bytes.fromhex('70 15 00 35 80 00 00 00 00'):
                 self.send_data(self.generate_answer_pss_tmi(3))
+            elif radio_packet.msg in self.routes.keys():
+                response: bytes = self.routes.get(radio_packet.msg, b'')
+                self.send_data(response)
             else:
                 logger.error(f'got unknown cmd: {radio_packet.msg.hex(" ")}')
         else:
